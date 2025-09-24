@@ -1,0 +1,33 @@
+app:
+  name: demo
+  host: 0.0.0.0
+  port: 8888
+  env: debug # test、release、debug, according to gin's model
+
+# To avoid having multiple databases
+# Your database configuration must be of array type
+# The following is just an example
+database:
+  mysql[]:
+    weekend: # Replace it with your database name
+      host: 127.0.0.1
+      port: 3306
+      username: root
+      password: admin@qcz
+      charset: utf8mb4
+      max_idle_connections: 120
+      max_open_connections: 30
+      max_life_seconds: 360
+      skip_initialize_with_version: false
+
+  # To avoid having multiple databases
+  # Your database configuration must be of array type
+  pgsql[]:
+    weekend: # Replace it with your database name
+      host: 127.0.0.1
+      port: 5432
+      database:
+      username:
+      password:
+      timezone: Asia/Shanghai # 时区
+      prefer_simple_protocol: true # 是否禁止使用缓存
