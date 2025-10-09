@@ -1,4 +1,5 @@
-# IDE 和编辑器
 .idea
 .vscode
 /**/.DS_Store
+
+app/**/storage
