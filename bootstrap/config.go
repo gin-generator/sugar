@@ -10,11 +10,19 @@ import (
 	"strings"
 )
 
+type Mode string
+
+const (
+	ModeDebug   Mode = "debug"
+	ModeRelease Mode = "release"
+	ModeTest    Mode = "test"
+)
+
 type App struct {
 	Name string
 	Host string
 	Port int
-	Env  string
+	Env  Mode
 }
 
 type Database struct {
@@ -28,6 +36,12 @@ type Config struct {
 	Database
 }
 
+// NewConfig
+/**
+ * @description: load config file
+ * @param {string} filename
+ * @param {string} path
+ */
 func NewConfig(filename, path string) (cfg Config) {
 	v := viper.New()
 	v.SetConfigName(filename)
