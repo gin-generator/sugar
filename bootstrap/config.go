@@ -2,7 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/gin-generator/sugar/package/log"
+	"github.com/gin-generator/sugar/package/logger"
 	"github.com/gin-generator/sugar/package/mysql"
 	"github.com/gin-generator/sugar/package/pgsql"
 	"github.com/spf13/viper"
@@ -32,7 +32,7 @@ type Database struct {
 
 type Config struct {
 	App
-	log.Logger
+	logger.Logger
 	Database
 }
 

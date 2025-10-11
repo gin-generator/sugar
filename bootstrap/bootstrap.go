@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"github.com/gin-generator/sugar/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -93,7 +94,11 @@ func WithGinEngine(engine *gin.Engine) Option {
  * @description: use global middleware
  */
 func (b *Bootstrap) use() {
-	// todo add middleware
+	b.HttpEngine.Use(
+		middleware.Recovery(),
+		middleware.Logger(),
+		middleware.Cors(),
+	)
 }
 
 // start
