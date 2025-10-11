@@ -42,6 +42,10 @@ type Database struct {
 
 var DB Database
 
+// NewMysql
+/**
+ * @description: initialize mysql connections
+ */
 func NewMysql(databases map[string]Mysql) {
 	var i int
 	for dbname, v := range databases {
@@ -61,6 +65,10 @@ func NewMysql(databases map[string]Mysql) {
 	}
 }
 
+// connect
+/**
+ * @description: connect mysql
+ */
 func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 	var dbConfig gorm.Dialector
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%v&multiStatements=%v&loc=%v",
@@ -106,6 +114,10 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 	return
 }
 
+// Use
+/**
+ * @description: get mysql connection by dbname
+ */
 func (d *Database) Use(dbname string) *gorm.DB {
 	if db, ok := d.db.Load(dbname); ok {
 		return db.(*gorm.DB)

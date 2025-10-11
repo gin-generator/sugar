@@ -2,7 +2,10 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-generator/sugar/middleware"
+	"github.com/gin-generator/sugar/package/logger"
+	"github.com/gin-generator/sugar/package/mysql"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,6 +56,7 @@ func NewBootstrap(server Server, opts ...Option) *Bootstrap {
 
 	switch server {
 	case ServerHttp:
+		gin.SetMode(string(b.Config.App.Env))
 		b.HttpEngine = gin.New()
 		b.use()
 	case ServerGrpc:
@@ -64,6 +68,7 @@ func NewBootstrap(server Server, opts ...Option) *Bootstrap {
 		opt.apply(b)
 	}
 
+	b.start()
 	return b
 }
 
@@ -104,10 +109,17 @@ func (b *Bootstrap) use() {
 // start
 /**
  * @description: start base server, e.g. mysql,redis,cache etc.
- * @param {Config} cfg
  */
-func (b *Bootstrap) start(cfg Config) {
+func (b *Bootstrap) start() {
+	// Setup logger
+	logger.NewLogger(b.Config.Logger)
 
+	// Setup mysql
+	if len(b.Config.Database.Mysql) > 0 {
+		mysql.NewMysql(b.Config.Database.Mysql)
+	}
+
+	// Setup pgsql
 }
 
 // RunHttp
@@ -115,5 +127,11 @@ func (b *Bootstrap) start(cfg Config) {
  * @description: start server
  */
 func (b *Bootstrap) RunHttp() {
-
+	RegisterDemoApiRoute(b.HttpEngine)
+	fmt.Println(fmt.Sprintf("%s serve start: %s:%d...",
+		b.App.Name, b.App.Host, b.App.Port))
+	err := b.HttpEngine.Run(fmt.Sprintf("%s:%d", b.App.Host, b.App.Port))
+	if err != nil {
+		panic("Unable to start server, error: " + err.Error())
+	}
 }

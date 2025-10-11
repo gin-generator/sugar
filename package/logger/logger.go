@@ -14,8 +14,11 @@ type Logger struct {
 
 var Log *_logger.Logger
 
+// NewLogger
+/**
+ * @description: create a new logger instance
+ */
 func NewLogger(cfg Logger) {
-
 	Log = _logger.NewLogger(
 		_logger.WithLevel(cfg.Level),
 		_logger.WithFileName(cfg.Filename),
