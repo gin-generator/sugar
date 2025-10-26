@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-generator/sugar/bootstrap"
+	"github.com/gin-generator/sugar/middleware"
 )
 
 func main() {
@@ -11,6 +12,14 @@ func main() {
 	//mysql.NewMysql(v.Mysql)
 	//mysql.DB.Default.Exec("show tables;")
 
-	b := bootstrap.NewBootstrap(bootstrap.ServerHttp)
-	b.RunHttp()
+	b := bootstrap.NewBootstrap(
+		bootstrap.ServerHttp,
+		bootstrap.WithHttpMiddleware(
+			middleware.Recovery(),
+			middleware.Logger(),
+			middleware.Cors(),
+		),
+		bootstrap.WithHttpRouter(bootstrap.RegisterApiRoute),
+	)
+	b.Run()
 }

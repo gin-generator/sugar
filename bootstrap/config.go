@@ -42,7 +42,7 @@ type Config struct {
  * @param {string} filename
  * @param {string} path
  */
-func NewConfig(filename, path string) (cfg Config) {
+func NewConfig(filename, path string) (cfg *Config) {
 	v := viper.New()
 	v.SetConfigName(filename)
 
@@ -55,7 +55,8 @@ func NewConfig(filename, path string) (cfg Config) {
 	}
 	// v.WatchConfig()
 
-	err = v.Unmarshal(&cfg)
+	cfg = new(Config)
+	err = v.Unmarshal(cfg)
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

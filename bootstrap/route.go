@@ -5,6 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterDemoApiRoute(e *gin.Engine) {
+func RegisterApiRoute(e *gin.Engine) {
 	route.RegisterApi(e)
 }

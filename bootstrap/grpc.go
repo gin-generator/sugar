@@ -1,3 +1,5 @@
 package bootstrap
 
-type GrpcEngine struct{}
+type Engine struct{}
+
+type Grpc struct{}

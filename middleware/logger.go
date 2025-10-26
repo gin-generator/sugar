@@ -58,7 +58,7 @@ func Logger() gin.HandlerFunc {
 			zap.String("errors", c.Errors.ByType(gin.ErrorTypePrivate).String()),
 			zap.String("time", microsecondsStr(cost)),
 		}
-		if c.Request.Method == "POST" || c.Request.Method == "PUT" || c.Request.Method == "DELETE" {
+		if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodPut || c.Request.Method == http.MethodDelete {
 			logFields = append(logFields, zap.String("Request Body", string(requestBody)))
 			logFields = append(logFields, zap.String("Response Body", w.body.String()))
 		}

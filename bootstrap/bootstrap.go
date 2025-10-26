@@ -2,22 +2,17 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
-	"github.com/gin-generator/sugar/middleware"
 	"github.com/gin-generator/sugar/package/logger"
 	"github.com/gin-generator/sugar/package/mysql"
 	"github.com/gin-gonic/gin"
 )
 
-type Engine interface {
-	*gin.Engine | *GrpcEngine
-}
-
 type Server string
 
 const (
-	ServerHttp Server = "http"
-	ServerGrpc Server = "grpc"
+	ServerHttp      Server = "http"
+	ServerWebsocket Server = "websocket"
+	ServerGrpc      Server = "grpc"
 )
 
 type Option interface {
@@ -30,17 +25,21 @@ func (o optionFunc) apply(b *Bootstrap) {
 	o(b)
 }
 
+type Ability interface {
+	Run()
+}
+
 type Bootstrap struct {
 	context.Context
 
 	// App config
-	Config
+	cfg *Config
 
 	// Http server engine
-	HttpEngine *gin.Engine
+	http *Http
 
 	// Grpc server engine
-	GrpcEngine *GrpcEngine
+	grpc *Grpc
 }
 
 // NewBootstrap
@@ -51,15 +50,16 @@ type Bootstrap struct {
 func NewBootstrap(server Server, opts ...Option) *Bootstrap {
 	b := &Bootstrap{
 		Context: context.Background(),
-		Config:  NewConfig("env.yaml", "./etc"),
+		cfg:     NewConfig("env.yaml", "./etc"),
 	}
 
 	switch server {
 	case ServerHttp:
-		gin.SetMode(string(b.Config.App.Env))
-		b.HttpEngine = gin.New()
-		b.use()
+		b.http = newHttp(b.cfg.App.Env)
+	case ServerWebsocket:
+		panic("unsupported server websocket type")
 	case ServerGrpc:
+		panic("unsupported server grpc type")
 	default:
 		panic("unsupported server type")
 	}
@@ -77,9 +77,9 @@ func NewBootstrap(server Server, opts ...Option) *Bootstrap {
  * @description: set app config
  * @param {Config} cfg
  */
-func WithAppConfig(cfg Config) Option {
+func WithAppConfig(cfg *Config) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.Config = cfg
+		b.cfg = cfg
 	})
 }
 
@@ -89,21 +89,29 @@ func WithAppConfig(cfg Config) Option {
  */
 func WithGinEngine(engine *gin.Engine) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.HttpEngine = engine
-		b.use()
+		b.http.Engine = engine
 	})
 }
 
-// use
+// WithHttpMiddleware
 /**
- * @description: use global middleware
+ * @description: set http middleware
+ * @param {...gin.HandlerFunc} middleware
  */
-func (b *Bootstrap) use() {
-	b.HttpEngine.Use(
-		middleware.Recovery(),
-		middleware.Logger(),
-		middleware.Cors(),
-	)
+func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
+	return optionFunc(func(b *Bootstrap) {
+		b.http.Use(middleware...)
+	})
+}
+
+// WithHttpRouter
+/**
+ * @description: set http router
+ */
+func WithHttpRouter(registerRouter RegisterRouter) Option {
+	return optionFunc(func(b *Bootstrap) {
+		registerRouter(b.http.Engine)
+	})
 }
 
 // start
@@ -112,26 +120,22 @@ func (b *Bootstrap) use() {
  */
 func (b *Bootstrap) start() {
 	// Setup logger
-	logger.NewLogger(b.Config.Logger)
+	logger.NewLogger(b.cfg.Logger)
 
 	// Setup mysql
-	if len(b.Config.Database.Mysql) > 0 {
-		mysql.NewMysql(b.Config.Database.Mysql)
+	if len(b.cfg.Database.Mysql) > 0 {
+		mysql.NewMysql(b.cfg.Database.Mysql)
 	}
 
 	// Setup pgsql
 }
 
-// RunHttp
+// Run
 /**
  * @description: start server
  */
-func (b *Bootstrap) RunHttp() {
-	RegisterDemoApiRoute(b.HttpEngine)
-	fmt.Println(fmt.Sprintf("%s serve start: %s:%d...",
-		b.App.Name, b.App.Host, b.App.Port))
-	err := b.HttpEngine.Run(fmt.Sprintf("%s:%d", b.App.Host, b.App.Port))
-	if err != nil {
-		panic("Unable to start server, error: " + err.Error())
+func (b *Bootstrap) Run() {
+	if b.http != nil {
+		b.http.run(b.cfg)
 	}
 }
