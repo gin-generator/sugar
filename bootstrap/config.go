@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-generator/sugar/package/logger"
 	"github.com/gin-generator/sugar/package/mysql"
+	"github.com/gin-generator/sugar/package/pgsql"
 	"github.com/gin-generator/sugar/package/validator"
 	"github.com/spf13/viper"
 	"path/filepath"
@@ -27,13 +28,13 @@ type App struct {
 
 type Database struct {
 	Mysql map[string]mysql.Mysql `validate:"dive,keys,required,endkeys,required"`
-	//Pgsql map[string]pgsql.Pgsql `validate:"required,gt=0,dive"`
+	Pgsql map[string]pgsql.Pgsql `validate:"omitzero,dive,keys,required,endkeys,required"`
 }
 
 type Config struct {
-	App      *App
-	Logger   *logger.Logger
-	Database *Database `validate:"required,dive"`
+	App      *App           `validate:"required"`
+	Logger   *logger.Logger `validate:"required"`
+	Database *Database      `validate:"required,dive"`
 }
 
 // NewConfig
