@@ -14,7 +14,8 @@ import (
 var validate *_validator.Validate
 
 func init() {
-	validate = _validator.New(_validator.WithRequiredStructEnabled())
+	//validate = _validator.New(_validator.WithRequiredStructEnabled())
+	validate = _validator.New()
 	err := validate.RegisterValidation("phone", validatePhone)
 	if err != nil {
 		panic("Unable to register validator, error: " + err.Error())

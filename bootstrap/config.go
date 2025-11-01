@@ -27,14 +27,14 @@ type App struct {
 }
 
 type Database struct {
-	Mysql map[string]mysql.Mysql `validate:"dive,keys,required,endkeys,required"`
-	Pgsql map[string]pgsql.Pgsql `validate:"omitzero,dive,keys,required,endkeys,required"`
+	Mysql map[string]mysql.Mysql `validate:"dive,keys,min=1,endkeys,required"`
+	Pgsql map[string]pgsql.Pgsql `validate:"dive,keys,min=1,endkeys,required"`
 }
 
 type Config struct {
 	App      *App           `validate:"required"`
 	Logger   *logger.Logger `validate:"required"`
-	Database *Database      `validate:"required,dive"`
+	Database *Database
 }
 
 // NewConfig
@@ -63,7 +63,7 @@ func NewConfig(filename, path string) (cfg *Config) {
 	}
 
 	// check config
-	err = validator.ValidateStruct(*cfg)
+	err = validator.ValidateStruct(cfg.Database)
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

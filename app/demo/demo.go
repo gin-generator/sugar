@@ -1,7 +1,6 @@
 package main
 
 import (
-	_middleware "github.com/gin-generator/sugar/app/demo/middleware"
 	"github.com/gin-generator/sugar/app/demo/route"
 	"github.com/gin-generator/sugar/bootstrap"
 	"github.com/gin-generator/sugar/middleware"
@@ -20,7 +19,6 @@ func main() {
 			middleware.Recovery(),
 			middleware.Logger(),
 			middleware.Cors(),
-			_middleware.Auth(), // add http server middleware
 		), // add http global middleware
 		bootstrap.WithHttpRouter(route.RegisterApi), // register http route handlers
 	)
