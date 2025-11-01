@@ -10,29 +10,29 @@ import (
 )
 
 type Mysql struct {
-	Host                     string
-	Port                     int
-	Username                 string
-	Password                 string
-	Charset                  string
-	ParseTime                bool
-	MultiStatements          bool
-	Loc                      string
-	MaxIdleConnections       int
-	MaxOpenConnections       int
-	MaxLifeSeconds           int
-	KipInitializeWithVersion bool
-	Logger
+	Host                     string  `validate:"required,ip"`
+	Port                     int     `validate:"required,gt=0,lte=65535"`
+	Username                 string  `validate:"required"`
+	Password                 string  `validate:"required"`
+	Charset                  string  `validate:"required"`
+	ParseTime                bool    `validate:"required"`
+	MultiStatements          bool    `validate:"required"`
+	Loc                      string  `validate:"required"`
+	MaxIdleConnections       *int    `validate:"omitempty,gte=0"`
+	MaxOpenConnections       *int    `validate:"omitempty,gt=0"`
+	MaxLifeSeconds           *int    `validate:"omitempty,gt=0"`
+	KipInitializeWithVersion bool    `validate:"required"`
+	Logger                   *Logger `validate:"required,dive"`
 }
 
 type Logger struct {
-	Level         string
-	MaxSize       int
-	MaxBackup     int
-	MaxAge        int
-	Compress      bool
-	LocalTime     bool
-	SlowThreshold int
+	Level         string `validate:"required,oneof=debug error warn info"`
+	MaxSize       int    `validate:"required,gt=0"`
+	MaxBackup     int    `validate:"required,gte=0"`
+	MaxAge        int    `validate:"required,gt=0"`
+	Compress      *bool  `validate:"omitempty"`
+	LocalTime     *bool  `validate:"omitempty"`
+	SlowThreshold int    `validate:"required,gt=0"` // in milliseconds
 }
 
 type Database struct {
@@ -89,14 +89,14 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 
 	logger := l.NewLogger(
 		l.WithFileName(fmt.Sprintf("storage/logs/%s.log", dbname)),
-		l.WithLevel(cfg.Level),
-		l.WithTimeZone(cfg.LocalTime),
-		l.WithMaxSize(cfg.MaxSize),
-		l.WithMaxBackup(cfg.MaxBackup),
-		l.WithMaxAge(cfg.MaxAge),
-		l.WithCompress(cfg.Compress),
+		l.WithLevel(cfg.Logger.Level),
+		l.WithTimeZone(*cfg.Logger.LocalTime),
+		l.WithMaxSize(cfg.Logger.MaxSize),
+		l.WithMaxBackup(cfg.Logger.MaxBackup),
+		l.WithMaxAge(cfg.Logger.MaxAge),
+		l.WithCompress(*cfg.Logger.Compress),
 	)
-	_logger := l.NewGormLogger(logger, l.WithSlowThreshold(time.Duration(cfg.SlowThreshold)*time.Millisecond))
+	_logger := l.NewGormLogger(logger, l.WithSlowThreshold(time.Duration(cfg.Logger.SlowThreshold)*time.Millisecond))
 	db, err = gorm.Open(dbConfig, &gorm.Config{
 		Logger: _logger,
 	})
@@ -108,9 +108,18 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 	if err != nil {
 		return
 	}
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConnections)
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConnections)
-	sqlDB.SetConnMaxLifetime(time.Duration(cfg.MaxLifeSeconds) * time.Second)
+
+	if cfg.MaxOpenConnections != nil {
+		sqlDB.SetMaxOpenConns(*cfg.MaxOpenConnections)
+	}
+
+	if cfg.MaxIdleConnections != nil {
+		sqlDB.SetMaxIdleConns(*cfg.MaxIdleConnections)
+	}
+
+	if cfg.MaxLifeSeconds != nil {
+		sqlDB.SetConnMaxLifetime(time.Duration(*cfg.MaxLifeSeconds) * time.Second)
+	}
 	return
 }
 

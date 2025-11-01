@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-generator/sugar/package/logger"
 	"github.com/gin-generator/sugar/package/mysql"
-	"github.com/gin-generator/sugar/package/pgsql"
+	"github.com/gin-generator/sugar/package/validator"
 	"github.com/spf13/viper"
 	"path/filepath"
 	"strings"
@@ -19,21 +19,21 @@ const (
 )
 
 type App struct {
-	Name string
-	Host string
-	Port int
-	Env  Mode
+	Name string `validate:"required"`
+	Host string `validate:"required,ip"`
+	Port int    `validate:"required,gt=0,lte=65535"`
+	Env  Mode   `validate:"required,oneof=debug release test"`
 }
 
 type Database struct {
-	Mysql map[string]mysql.Mysql
-	Pgsql map[string]pgsql.Pgsql
+	Mysql map[string]mysql.Mysql `validate:"dive,keys,required,endkeys,required"`
+	//Pgsql map[string]pgsql.Pgsql `validate:"required,gt=0,dive"`
 }
 
 type Config struct {
-	App
-	logger.Logger
-	Database
+	App      *App
+	Logger   *logger.Logger
+	Database *Database `validate:"required,dive"`
 }
 
 // NewConfig
@@ -57,6 +57,12 @@ func NewConfig(filename, path string) (cfg *Config) {
 
 	cfg = new(Config)
 	err = v.Unmarshal(cfg)
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+
+	// check config
+	err = validator.ValidateStruct(*cfg)
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

@@ -120,14 +120,14 @@ func WithHttpRouter(registerRouter RegisterRouter) Option {
  */
 func (b *Bootstrap) start() {
 	// Setup logger
-	logger.NewLogger(b.cfg.Logger)
+	logger.NewLogger(*b.cfg.Logger)
 
 	// Setup mysql
 	if len(b.cfg.Database.Mysql) > 0 {
 		mysql.NewMysql(b.cfg.Database.Mysql)
 	}
 
-	// Setup pgsql
+	// TODO：Setup pgsql
 }
 
 // Run
