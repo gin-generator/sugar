@@ -27,14 +27,14 @@ type App struct {
 }
 
 type Database struct {
-	Mysql map[string]mysql.Mysql `validate:"dive,keys,min=1,endkeys,required"`
-	Pgsql map[string]pgsql.Pgsql `validate:"dive,keys,min=1,endkeys,required"`
+	Mysql map[string]mysql.Mysql `validate:"omitempty,dive"`
+	Pgsql map[string]pgsql.Pgsql `validate:"omitempty,dive"`
 }
 
 type Config struct {
-	App      *App           `validate:"required"`
-	Logger   *logger.Logger `validate:"required"`
-	Database *Database
+	App      App           `validate:"required"`
+	Logger   logger.Logger `validate:"required"`
+	Database Database      `validate:"required"`
 }
 
 // NewConfig
@@ -43,7 +43,7 @@ type Config struct {
  * @param {string} filename
  * @param {string} path
  */
-func NewConfig(filename, path string) (cfg *Config) {
+func NewConfig(filename, path string) (config *Config) {
 	v := viper.New()
 	v.SetConfigName(filename)
 
@@ -56,14 +56,14 @@ func NewConfig(filename, path string) (cfg *Config) {
 	}
 	// v.WatchConfig()
 
-	cfg = new(Config)
-	err = v.Unmarshal(cfg)
+	config = new(Config)
+	err = v.Unmarshal(config)
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 
 	// check config
-	err = validator.ValidateStruct(cfg.Database)
+	err = validator.ValidateStruct(*config)
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}

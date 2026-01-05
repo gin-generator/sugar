@@ -7,13 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Server string
+type ServerType int
 
 const (
-	ServerHttp      Server = "http"
-	ServerWebsocket Server = "websocket"
-	ServerGrpc      Server = "grpc"
+	ServerHttp ServerType = iota
+	ServerWebsocket
+	ServerGrpc
 )
+
+// Server interface
+type Server interface {
+	Run(cfg *Config)
+	GetEngine() *gin.Engine
+	Use(middleware ...gin.HandlerFunc)
+}
 
 type Option interface {
 	apply(*Bootstrap)
@@ -25,44 +32,29 @@ func (o optionFunc) apply(b *Bootstrap) {
 	o(b)
 }
 
-type Ability interface {
-	Run()
-}
-
 type Bootstrap struct {
 	context.Context
 
 	// App config
 	cfg *Config
 
-	// Http server engine
-	http *Http
-
-	// Grpc server engine
-	grpc *Grpc
+	// Server 实例（接口类型）
+	server Server
 }
 
 // NewBootstrap
 /**
- * @description: create a new http bootstrap instance
- * @param {Server} server, server type: http, grpc
+ * @description: create a new bootstrap instance
+ * @param {ServerType} serverType, server type: http, grpc
  */
-func NewBootstrap(server Server, opts ...Option) *Bootstrap {
+func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
 	b := &Bootstrap{
 		Context: context.Background(),
 		cfg:     NewConfig("env.yaml", "./etc"),
 	}
 
-	switch server {
-	case ServerHttp:
-		b.http = newHttp(b.cfg.App.Env)
-	case ServerWebsocket:
-		panic("unsupported server websocket type")
-	case ServerGrpc:
-		panic("unsupported server grpc type")
-	default:
-		panic("unsupported server type")
-	}
+	// create server instance
+	b.server = createServer(serverType, b.cfg)
 
 	for _, opt := range opts {
 		opt.apply(b)
@@ -70,6 +62,24 @@ func NewBootstrap(server Server, opts ...Option) *Bootstrap {
 
 	b.start()
 	return b
+}
+
+// createServer
+/**
+ * @description: create a server instance based on the server type
+ * @param: {ServerType} serverType, server type: http, grpc
+ */
+func createServer(serverType ServerType, cfg *Config) Server {
+	switch serverType {
+	case ServerHttp:
+		return newHttp(cfg.App.Env)
+	case ServerWebsocket:
+		panic("unsupported server websocket type")
+	case ServerGrpc:
+		panic("unsupported server grpc type")
+	default:
+		panic("unsupported server type")
+	}
 }
 
 // WithAppConfig
@@ -89,7 +99,9 @@ func WithAppConfig(cfg *Config) Option {
  */
 func WithGinEngine(engine *gin.Engine) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.http.Engine = engine
+		if httpServer, ok := b.server.(*Http); ok {
+			httpServer.Engine = engine
+		}
 	})
 }
 
@@ -100,7 +112,7 @@ func WithGinEngine(engine *gin.Engine) Option {
  */
 func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.http.Use(middleware...)
+		b.server.Use(middleware...)
 	})
 }
 
@@ -110,7 +122,7 @@ func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
  */
 func WithHttpRouter(registerRouter RegisterRouter) Option {
 	return optionFunc(func(b *Bootstrap) {
-		registerRouter(b.http.Engine)
+		registerRouter(b.server.GetEngine())
 	})
 }
 
@@ -120,7 +132,7 @@ func WithHttpRouter(registerRouter RegisterRouter) Option {
  */
 func (b *Bootstrap) start() {
 	// Setup logger
-	logger.NewLogger(*b.cfg.Logger)
+	logger.NewLogger(b.cfg.Logger)
 
 	// Setup mysql
 	if len(b.cfg.Database.Mysql) > 0 {
@@ -135,7 +147,5 @@ func (b *Bootstrap) start() {
  * @description: start server
  */
 func (b *Bootstrap) Run() {
-	if b.http != nil {
-		b.http.run(b.cfg)
-	}
+	b.server.Run(b.cfg)
 }

@@ -32,16 +32,34 @@ func newHttp(env Mode) *Http {
 	}
 }
 
-// run
+// Run 实现 Server 接口
 /**
  * @description: run http server
  * @param {Config} cfg
  */
-func (h *Http) run(cfg *Config) {
+func (h *Http) Run(cfg *Config) {
 	fmt.Println(fmt.Sprintf("%s serve start: %s:%d...",
 		cfg.App.Name, cfg.App.Host, cfg.App.Port))
 	err := h.Engine.Run(fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Port))
 	if err != nil {
 		panic("Unable to start server, error: " + err.Error())
 	}
+}
+
+// GetEngine 实现 Server 接口
+/**
+ * @description: get gin engine
+ * @return {*gin.Engine}
+ */
+func (h *Http) GetEngine() *gin.Engine {
+	return h.Engine
+}
+
+// Use 实现 Server 接口
+/**
+ * @description: use middleware
+ * @param {...gin.HandlerFunc} middleware
+ */
+func (h *Http) Use(middleware ...gin.HandlerFunc) {
+	h.Engine.Use(middleware...)
 }

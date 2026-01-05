@@ -7,7 +7,12 @@ import (
 )
 
 type Inner struct {
-	Value string `validate:"max=5"`
+	Value string            `validate:"max=5"`
+	Name  map[string]Nested `validate:"dive,keys,endkeys,required"`
+}
+
+type Nested struct {
+	Name string `validate:"required,max=1"`
 }
 
 type Outer1 struct {
@@ -23,25 +28,15 @@ type Outer3 struct {
 }
 
 func TestValidateStruct(t *testing.T) {
-	v := validator.New(validator.WithRequiredStructEnabled())
-
-	// Should fail, but passes
-	fmt.Println("Outer1:", v.Struct(Outer1{Inner: map[string]Inner{
-		"a": {Value: "1234567890"},
-	}}))
+	v := validator.New()
 
 	// Should fail, and fails (but there is no validation for keys)
 	fmt.Println("Outer2:", v.Struct(Outer2{Inner: map[string]Inner{
-		"a": {Value: "1234567890"},
-	}}))
-
-	// Should fail, and fails (but has extra required validation, which is not intended)
-	fmt.Println("Outer3:", v.Struct(Outer3{Inner: map[string]Inner{
-		"a": {Value: "1234567890"},
-	}}))
-
-	// Should fail (due to required), but I don't want it to fail
-	fmt.Println("Outer3 (a):", v.Struct(Outer3{Inner: map[string]Inner{
-		"a": {Value: ""},
+		"a": {
+			Value: "123",
+			Name: map[string]Nested{
+				"x": {Name: "validname"},
+			},
+		},
 	}}))
 }

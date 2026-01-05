@@ -3,12 +3,12 @@ package pgsql
 import "sync"
 
 type Pgsql struct {
-	Host                 string
-	Port                 int
-	Username             string
-	Password             string
-	Timezone             string
-	PreferSimpleProtocol bool
+	Host                 string `validate:"required,ip"`
+	Port                 int    `validate:"required,gt=0,lte=65535"`
+	Username             string `validate:"required"`
+	Password             string `validate:"required"`
+	Timezone             string `validate:"required"`
+	PreferSimpleProtocol bool   `validate:"required"`
 }
 
 type Database struct {

@@ -2,7 +2,6 @@ package validator
 
 import (
 	"errors"
-	"fmt"
 	_validator "github.com/go-playground/validator/v10"
 	"regexp"
 )
@@ -14,8 +13,8 @@ import (
 var validate *_validator.Validate
 
 func init() {
-	//validate = _validator.New(_validator.WithRequiredStructEnabled())
-	validate = _validator.New()
+	// 启用 RequiredStructEnabled 以自动验证嵌套结构体
+	validate = _validator.New(_validator.WithRequiredStructEnabled())
 	err := validate.RegisterValidation("phone", validatePhone)
 	if err != nil {
 		panic("Unable to register validator, error: " + err.Error())
@@ -36,15 +35,12 @@ func validatePhone(f _validator.FieldLevel) bool {
 func ValidateStruct(s interface{}) (err error) {
 	err = validate.Struct(s)
 	if err != nil {
-		var invalidValidationError *_validator.InvalidValidationError
-		if errors.As(err, &invalidValidationError) {
-			return
-		}
-		for _, obj := range err.(_validator.ValidationErrors) {
-			return errors.New(
-				fmt.Sprintf("In %s, Field '%s' validation failed on the '%s' tag",
-					obj.StructNamespace(), obj.Field(), obj.Tag()))
+		var validationErrors _validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
+			for _, e := range validationErrors {
+				return e
+			}
 		}
 	}
-	return
+	return err
 }

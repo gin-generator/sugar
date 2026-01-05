@@ -10,19 +10,19 @@ import (
 )
 
 type Mysql struct {
-	Host                     string  `validate:"required,ip"`
-	Port                     int     `validate:"required,gt=0,lte=65535"`
-	Username                 string  `validate:"required"`
-	Password                 string  `validate:"required"`
-	Charset                  string  `validate:"required"`
-	ParseTime                bool    `validate:"required"`
-	MultiStatements          bool    `validate:"required"`
-	Loc                      string  `validate:"required"`
-	MaxIdleConnections       *int    `validate:"omitempty,gte=0"`
-	MaxOpenConnections       *int    `validate:"omitempty,gt=0"`
-	MaxLifeSeconds           *int    `validate:"omitempty,gt=0"`
-	KipInitializeWithVersion bool    `validate:"required"`
-	Logger                   *Logger `validate:"required,dive"`
+	Host               string  `validate:"required,ip"`
+	Port               int     `validate:"required,gt=0,lte=65535"`
+	Username           string  `validate:"required"`
+	Password           string  `validate:"required"`
+	Charset            string  `validate:"required"`
+	ParseTime          bool    `validate:"required"`
+	MultiStatements    bool    `validate:"required"`
+	Loc                string  `validate:"required"`
+	MaxIdleConnections *int    `validate:"omitempty,gte=0"`
+	MaxOpenConnections *int    `validate:"omitempty,gt=0"`
+	MaxLifeSeconds     *int    `validate:"omitempty,gt=0"`
+	SkipVersion        bool    `validate:"omitempty,boolean"`
+	Logger             *Logger `validate:"required"`
 }
 
 type Logger struct {
@@ -84,7 +84,7 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 	)
 	dbConfig = _mysql.New(_mysql.Config{
 		DSN:                       dsn,
-		SkipInitializeWithVersion: cfg.KipInitializeWithVersion,
+		SkipInitializeWithVersion: cfg.SkipVersion,
 	})
 
 	logger := l.NewLogger(
