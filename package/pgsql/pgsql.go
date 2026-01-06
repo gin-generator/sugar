@@ -63,7 +63,6 @@ func NewPgsql(databases map[string]Pgsql) {
 		PG.mu.Unlock()
 	}
 
-	// 设置默认数据库为第一个成功连接的数据库
 	if firstDB != nil {
 		PG.Default = firstDB
 	}
@@ -88,30 +87,36 @@ func connect(dbname string, cfg Pgsql) (db *gorm.DB, err error) {
 		PreferSimpleProtocol: cfg.PreferSimpleProtocol,
 	})
 
-	compress := false
-	if cfg.Logger.Compress != nil {
-		compress = *cfg.Logger.Compress
+	var gormConfig *gorm.Config
+	if cfg.Logger != nil {
+		compress := false
+		if cfg.Logger.Compress != nil {
+			compress = *cfg.Logger.Compress
+		}
+
+		localTime := false
+		if cfg.Logger.LocalTime != nil {
+			localTime = *cfg.Logger.LocalTime
+		}
+
+		logger := l.NewLogger(
+			l.WithFileName(fmt.Sprintf("storage/logs/%s.log", dbname)),
+			l.WithLevel(cfg.Logger.Level),
+			l.WithTimeZone(localTime),
+			l.WithMaxSize(cfg.Logger.MaxSize),
+			l.WithMaxBackup(cfg.Logger.MaxBackup),
+			l.WithMaxAge(cfg.Logger.MaxAge),
+			l.WithCompress(compress),
+		)
+		_logger := l.NewGormLogger(logger, l.WithSlowThreshold(time.Duration(cfg.Logger.SlowThreshold)*time.Millisecond))
+		gormConfig = &gorm.Config{
+			Logger: _logger,
+		}
+	} else {
+		gormConfig = &gorm.Config{}
 	}
 
-	localTime := false
-	if cfg.Logger.LocalTime != nil {
-		localTime = *cfg.Logger.LocalTime
-	}
-
-	logger := l.NewLogger(
-		l.WithFileName(fmt.Sprintf("storage/logs/%s.log", dbname)),
-		l.WithLevel(cfg.Logger.Level),
-		l.WithTimeZone(localTime),
-		l.WithMaxSize(cfg.Logger.MaxSize),
-		l.WithMaxBackup(cfg.Logger.MaxBackup),
-		l.WithMaxAge(cfg.Logger.MaxAge),
-		l.WithCompress(compress),
-	)
-	_logger := l.NewGormLogger(logger, l.WithSlowThreshold(time.Duration(cfg.Logger.SlowThreshold)*time.Millisecond))
-
-	db, err = gorm.Open(dbConfig, &gorm.Config{
-		Logger: _logger,
-	})
+	db, err = gorm.Open(dbConfig, gormConfig)
 	if err != nil {
 		return
 	}

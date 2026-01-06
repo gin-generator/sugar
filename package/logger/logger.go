@@ -19,17 +19,16 @@ var Log *_logger.Logger
  * @description: create a new logger instance
  */
 func NewLogger(cfg Logger) {
-	// 设置默认值
 	compress := false
 	if cfg.Compress != nil {
 		compress = *cfg.Compress
 	}
-	
+
 	localTime := false
 	if cfg.LocalTime != nil {
 		localTime = *cfg.LocalTime
 	}
-	
+
 	Log = _logger.NewLogger(
 		_logger.WithLevel(cfg.Level),
 		_logger.WithFileName(cfg.Filename),

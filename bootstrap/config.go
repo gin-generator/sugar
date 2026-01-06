@@ -21,7 +21,7 @@ const (
 
 type App struct {
 	Name string `validate:"required"`
-	Host string `validate:"required,ip"`
+	Host string `validate:"required"`
 	Port int    `validate:"required,gt=0,lte=65535"`
 	Env  Mode   `validate:"required,oneof=debug release test"`
 }
