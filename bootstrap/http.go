@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/gin-generator/sugar/foundation"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,11 +23,11 @@ type Http struct {
 // newHttp
 /**
  * @description: create a new http server instance
- * @param {Mode} env
+ * @param {string} env
  * @return {*Http}
  */
-func newHttp(env Mode) *Http {
-	gin.SetMode(string(env))
+func newHttp(env string) *Http {
+	gin.SetMode(env)
 	return &Http{
 		Engine: gin.New(),
 	}
@@ -34,30 +35,27 @@ func newHttp(env Mode) *Http {
 
 // Run 实现 Server 接口
 /**
- * @description: run http server
- * @param {Config} cfg
+ * @description: 运行 HTTP 服务器
+ * @param {*foundation.Application} app
  */
-func (h *Http) Run(cfg *Config) {
-	fmt.Println(fmt.Sprintf("%s serve start: %s:%d...",
-		cfg.App.Name, cfg.App.Host, cfg.App.Port))
-	err := h.Engine.Run(fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Port))
+func (h *Http) Run(app *foundation.Application) {
+	cfg, _ := app.GetConfig("app")
+	appCfg := cfg.(map[string]interface{})
+
+	name := appCfg["name"].(string)
+	host := appCfg["host"].(string)
+	port := appCfg["port"].(int)
+
+	fmt.Printf("%s serve start: %s:%d...\n", name, host, port)
+	err := h.Engine.Run(fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic("Unable to start server, error: " + err.Error())
 	}
 }
 
-// GetEngine 实现 Server 接口
+// Use 添加中间件
 /**
- * @description: get gin engine
- * @return {*gin.Engine}
- */
-func (h *Http) GetEngine() *gin.Engine {
-	return h.Engine
-}
-
-// Use 实现 Server 接口
-/**
- * @description: use middleware
+ * @description: 使用中间件
  * @param {...gin.HandlerFunc} middleware
  */
 func (h *Http) Use(middleware ...gin.HandlerFunc) {

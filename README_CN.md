@@ -93,11 +93,11 @@ go run app/demo/demo.go
 import "github.com/gin-generator/sugar/services/database"
 
 // 使用默认连接
-db := database.DB()
+db, _ := database.DB()
 var users []User
 db.Find(&users)
 
-// Use specified connection
+// 使用指定连接
 conn, _ := database.Connection("admin")
 conn.Find(&users)
 ```
@@ -125,7 +125,7 @@ cache.Delete(ctx, "key")
 // app/demo/route/route.go
 func RegisterApi(e *gin.Engine) {
     e.GET("/users", func(c *gin.Context) {
-        db := database.DB()
+        db, _ := database.DB()
         var users []User
         db.Find(&users)
         
@@ -138,8 +138,9 @@ func RegisterApi(e *gin.Engine) {
 
 ## 文档
 
-- [架构说明](ARCHITECTURE.md) - 详细的架构设计说明
-- [使用示例](USAGE_EXAMPLES.md) - 完整的使用示例
+- [架构说明](ARCHITECTURE_CN.md) - 详细的架构设计说明
+- [使用示例](USAGE_EXAMPLES_CN.md) - 完整的使用示例
+- [迁移指南](MIGRATION_GUIDE_CN.md) - 从旧版本迁移指南
 
 ## 创建新应用
 

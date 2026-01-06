@@ -7,12 +7,6 @@ import (
 )
 
 func main() {
-	//v := bootstrap.NewConfig("env.yaml", "./etc")
-	//fmt.Println(v.GetStringMap("database.mysql[]"))
-
-	//mysql.NewMysql(v.Mysql)
-	//mysql.DB.Default.Exec("show tables;")
-
 	b := bootstrap.NewBootstrap(
 		bootstrap.ServerHttp, // create a new http bootstrap instance
 		bootstrap.WithHttpMiddleware(

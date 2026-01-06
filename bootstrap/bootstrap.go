@@ -1,11 +1,9 @@
 package bootstrap
 
 import (
-	"context"
-	"fmt"
-	"github.com/gin-generator/sugar/package/logger"
-	"github.com/gin-generator/sugar/package/mysql"
-	"github.com/gin-generator/sugar/package/pgsql"
+	"github.com/gin-generator/sugar/config"
+	"github.com/gin-generator/sugar/foundation"
+	"github.com/gin-generator/sugar/providers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,11 +15,9 @@ const (
 	ServerGrpc
 )
 
-// Server interface
+// Server 服务器接口
 type Server interface {
-	Run(cfg *Config)
-	GetEngine() *gin.Engine
-	Use(middleware ...gin.HandlerFunc)
+	Run(app *foundation.Application)
 }
 
 type Option interface {
@@ -34,125 +30,100 @@ func (o optionFunc) apply(b *Bootstrap) {
 	o(b)
 }
 
+// Bootstrap application bootstrap
 type Bootstrap struct {
-	context.Context
+	// Application container
+	app *foundation.Application
 
-	// App config
-	cfg *Config
+	// Config manager
+	cfg *config.Config
 
 	// Server instance
 	server Server
-
-	// Initializers
-	initializers []Initializer
 }
 
-// Initializer interface
-type Initializer interface {
-	Init(cfg *Config) error
-	Name() string
-}
-
-// loggerInitializer
-type loggerInitializer struct{}
-
-func (l *loggerInitializer) Init(cfg *Config) error {
-	logger.NewLogger(cfg.Logger)
-	return nil
-}
-
-func (l *loggerInitializer) Name() string {
-	return "Logger"
-}
-
-// mysqlInitializer MySQL
-type mysqlInitializer struct{}
-
-func (m *mysqlInitializer) Init(cfg *Config) error {
-	if len(cfg.Database.Mysql) > 0 {
-		mysql.NewMysql(cfg.Database.Mysql)
-	}
-	return nil
-}
-
-func (m *mysqlInitializer) Name() string {
-	return "MySQL"
-}
-
-// pgsqlInitializer PostgresSQL
-type pgsqlInitializer struct{}
-
-func (p *pgsqlInitializer) Init(cfg *Config) error {
-	if len(cfg.Database.Pgsql) > 0 {
-		pgsql.NewPgsql(cfg.Database.Pgsql)
-	}
-	return nil
-}
-
-func (p *pgsqlInitializer) Name() string {
-	return "PostgresSQL"
-}
-
-// NewBootstrap
-/**
- * @description: create a new bootstrap instance
- * @param {ServerType} serverType, server type: http, grpc
- */
+// NewBootstrap creates a new bootstrap instance
 func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
+	// Create application container
+	app := foundation.NewApplication()
+
+	// Load configuration
+	cfg := config.NewConfig("env.yaml", "./etc")
+
 	b := &Bootstrap{
-		Context: context.Background(),
-		cfg:     NewConfig("env.yaml", "./etc"),
-		initializers: []Initializer{
-			&loggerInitializer{},
-			&mysqlInitializer{},
-			&pgsqlInitializer{},
-		},
+		app: app,
+		cfg: cfg,
 	}
 
-	// create server instance
-	b.server = createServer(serverType, b.cfg)
+	// Store configuration in application container
+	var appCfg map[string]interface{}
+	err := cfg.UnmarshalKey("app", &appCfg)
+	if err != nil {
+		return nil
+	}
+	app.SetConfig("app", appCfg)
 
+	// Register service providers
+	b.registerProviders()
+
+	// Boot service providers
+	if err = app.Boot(); err != nil {
+		panic(err)
+	}
+
+	// Create server instance
+	b.server = createServer(serverType, app, cfg)
+
+	// Apply options
 	for _, opt := range opts {
 		opt.apply(b)
 	}
 
-	b.start()
 	return b
 }
 
-// createServer
-/**
- * @description: create a server instance based on the server type
- * @param: {ServerType} serverType, server type: http, grpc
- */
-func createServer(serverType ServerType, cfg *Config) Server {
+// registerProviders registers service providers
+func (b *Bootstrap) registerProviders() {
+	// Register core service providers
+	b.app.Register(providers.NewLoggerServiceProvider(b.cfg))
+	b.app.Register(providers.NewDatabaseServiceProvider(b.cfg))
+	b.app.Register(providers.NewCacheServiceProvider(b.cfg))
+	b.app.Register(providers.NewStorageServiceProvider(b.cfg))
+	b.app.Register(providers.NewQueueServiceProvider(b.cfg))
+}
+
+// createServer creates a server instance based on the server type
+func createServer(serverType ServerType, app *foundation.Application, cfg *config.Config) Server {
+	env := cfg.GetString("app.env")
+
 	switch serverType {
 	case ServerHttp:
-		return newHttp(cfg.App.Env)
+		return newHttp(env)
 	case ServerWebsocket:
-		panic("unsupported server websocket type")
+		// 可以在这里实现 WebSocket 服务器
+		panic("websocket server not implemented yet")
 	case ServerGrpc:
-		panic("unsupported server grpc type")
+		return newGrpc()
 	default:
 		panic("unsupported server type")
 	}
 }
 
-// WithAppConfig
-/**
- * @description: set app config
- * @param {Config} cfg
- */
-func WithAppConfig(cfg *Config) Option {
+// WithConfig sets the config manager
+func WithConfig(cfg *config.Config) Option {
 	return optionFunc(func(b *Bootstrap) {
 		b.cfg = cfg
 	})
 }
 
-// WithGinEngine
-/**
- * @description: set gin engine
- */
+// WithProvider registers an additional service provider
+func WithProvider(provider foundation.ServiceProvider) Option {
+	return optionFunc(func(b *Bootstrap) {
+		b.app.Register(provider)
+	})
+}
+
+// WithGinEngine 设置 gin 引擎（仅适用于 HTTP 服务器）
 func WithGinEngine(engine *gin.Engine) Option {
 	return optionFunc(func(b *Bootstrap) {
 		if httpServer, ok := b.server.(*Http); ok {
@@ -161,54 +132,39 @@ func WithGinEngine(engine *gin.Engine) Option {
 	})
 }
 
-// WithHttpMiddleware
-/**
- * @description: set http middleware
- * @param {...gin.HandlerFunc} middleware
- */
+// WithHttpMiddleware 设置 HTTP 中间件（仅适用于 HTTP 服务器）
 func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.server.Use(middleware...)
+		if httpServer, ok := b.server.(*Http); ok {
+			httpServer.Use(middleware...)
+		}
 	})
 }
 
-// WithHttpRouter
-/**
- * @description: set http router
- */
+// WithHttpRouter 设置 HTTP 路由（仅适用于 HTTP 服务器）
 func WithHttpRouter(registerRouter RegisterRouter) Option {
 	return optionFunc(func(b *Bootstrap) {
-		registerRouter(b.server.GetEngine())
-	})
-}
-
-// WithInitializers
-/**
- * @description: set initializers
- * @param {...Initializer} initializers
- */
-func WithInitializers(initializers ...Initializer) Option {
-	return optionFunc(func(b *Bootstrap) {
-		b.initializers = append(b.initializers, initializers...)
-	})
-}
-
-// start
-/**
- * @description: 执行所有初始化器
- */
-func (b *Bootstrap) start() {
-	for _, initializer := range b.initializers {
-		if err := initializer.Init(b.cfg); err != nil {
-			panic(fmt.Sprintf("Failed to initialize %s: %v", initializer.Name(), err))
+		if httpServer, ok := b.server.(*Http); ok {
+			registerRouter(httpServer.Engine)
 		}
-	}
+	})
 }
 
-// Run
-/**
- * @description: start server
- */
+// WithGrpcService 注册 gRPC 服务（仅适用于 gRPC 服务器）
+func WithGrpcService(registerService RegisterGrpcService) Option {
+	return optionFunc(func(b *Bootstrap) {
+		if grpcServer, ok := b.server.(*Grpc); ok {
+			registerService(grpcServer.Server)
+		}
+	})
+}
+
+// Run starts the server
 func (b *Bootstrap) Run() {
-	b.server.Run(b.cfg)
+	b.server.Run(b.app)
+}
+
+// App returns the application container
+func (b *Bootstrap) App() *foundation.Application {
+	return b.app
 }

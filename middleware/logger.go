@@ -3,7 +3,7 @@ package middleware
 import (
 	"bytes"
 	"fmt"
-	"github.com/gin-generator/sugar/package/logger"
+	"github.com/gin-generator/sugar/services/logger"
 	"io"
 	"net/http"
 	"time"
@@ -23,10 +23,7 @@ func (r responseBodyWriter) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
-// Logger
-/**
- * @Description: record request log
- */
+// Logger records request log
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if logger.Log.Log.Level() > zap.ErrorLevel {

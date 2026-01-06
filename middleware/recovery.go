@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"errors"
-	"github.com/gin-generator/sugar/package/logger"
+	"github.com/gin-generator/sugar/services/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net"
@@ -12,10 +12,7 @@ import (
 	"time"
 )
 
-// Recovery
-/**
- * @Description: use zap.Error to record Panic and call stack
- */
+// Recovery uses zap.Error to record Panic and call stack
 func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -49,13 +46,13 @@ func Recovery() gin.HandlerFunc {
 
 				// if the connection is not aborted, we can log the panic stacktrace
 				logger.Log.Error("recovery from panic",
-					zap.Time("time", time.Now()),               // 记录时间
-					zap.Any("error", err),                      // 记录错误信息
-					zap.String("request", string(httpRequest)), // 请求
-					zap.Stack("stacktrace"),                    // 记录调用堆栈信息
+					zap.Time("time", time.Now()),               // record time
+					zap.Any("error", err),                      // record error
+					zap.String("request", string(httpRequest)), // request
+					zap.Stack("stacktrace"),                    // record stack trace
 				)
 
-				// 返回 500000 状态码
+				// return 500 status code
 				// http.Alert500(c, http.StatusInternalServerError, fmt.Sprintf("%v", err))
 			}
 		}()
