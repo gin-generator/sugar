@@ -2,8 +2,10 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-generator/sugar/package/logger"
 	"github.com/gin-generator/sugar/package/mysql"
+	"github.com/gin-generator/sugar/package/pgsql"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,8 +40,57 @@ type Bootstrap struct {
 	// App config
 	cfg *Config
 
-	// Server 实例（接口类型）
+	// Server instance
 	server Server
+
+	// Initializers
+	initializers []Initializer
+}
+
+// Initializer interface
+type Initializer interface {
+	Init(cfg *Config) error
+	Name() string
+}
+
+// loggerInitializer
+type loggerInitializer struct{}
+
+func (l *loggerInitializer) Init(cfg *Config) error {
+	logger.NewLogger(cfg.Logger)
+	return nil
+}
+
+func (l *loggerInitializer) Name() string {
+	return "Logger"
+}
+
+// mysqlInitializer MySQL
+type mysqlInitializer struct{}
+
+func (m *mysqlInitializer) Init(cfg *Config) error {
+	if len(cfg.Database.Mysql) > 0 {
+		mysql.NewMysql(cfg.Database.Mysql)
+	}
+	return nil
+}
+
+func (m *mysqlInitializer) Name() string {
+	return "MySQL"
+}
+
+// pgsqlInitializer PostgresSQL
+type pgsqlInitializer struct{}
+
+func (p *pgsqlInitializer) Init(cfg *Config) error {
+	if len(cfg.Database.Pgsql) > 0 {
+		pgsql.NewPgsql(cfg.Database.Pgsql)
+	}
+	return nil
+}
+
+func (p *pgsqlInitializer) Name() string {
+	return "PostgresSQL"
 }
 
 // NewBootstrap
@@ -51,6 +102,11 @@ func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
 	b := &Bootstrap{
 		Context: context.Background(),
 		cfg:     NewConfig("env.yaml", "./etc"),
+		initializers: []Initializer{
+			&loggerInitializer{},
+			&mysqlInitializer{},
+			&pgsqlInitializer{},
+		},
 	}
 
 	// create server instance
@@ -126,20 +182,27 @@ func WithHttpRouter(registerRouter RegisterRouter) Option {
 	})
 }
 
+// WithInitializers
+/**
+ * @description: set initializers
+ * @param {...Initializer} initializers
+ */
+func WithInitializers(initializers ...Initializer) Option {
+	return optionFunc(func(b *Bootstrap) {
+		b.initializers = append(b.initializers, initializers...)
+	})
+}
+
 // start
 /**
- * @description: start base server, e.g. mysql,redis,cache etc.
+ * @description: 执行所有初始化器
  */
 func (b *Bootstrap) start() {
-	// Setup logger
-	logger.NewLogger(b.cfg.Logger)
-
-	// Setup mysql
-	if len(b.cfg.Database.Mysql) > 0 {
-		mysql.NewMysql(b.cfg.Database.Mysql)
+	for _, initializer := range b.initializers {
+		if err := initializer.Init(b.cfg); err != nil {
+			panic(fmt.Sprintf("Failed to initialize %s: %v", initializer.Name(), err))
+		}
 	}
-
-	// TODO：Setup pgsql
 }
 
 // Run

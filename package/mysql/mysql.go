@@ -37,7 +37,8 @@ type Logger struct {
 
 type Database struct {
 	Default *gorm.DB
-	db      sync.Map
+	db      map[string]*gorm.DB
+	mu      sync.RWMutex
 }
 
 var DB Database
@@ -47,21 +48,25 @@ var DB Database
  * @description: initialize mysql connections
  */
 func NewMysql(databases map[string]Mysql) {
-	var i int
+	DB.db = make(map[string]*gorm.DB)
+	var firstDB *gorm.DB
+
 	for dbname, v := range databases {
-		i++
-		_, ok := DB.db.Load(dbname)
-		if !ok {
-			db, err := connect(dbname, v)
-			if err != nil {
-				continue
-			} else {
-				DB.db.Store(dbname, db)
-				if i == 1 {
-					DB.Default = db
-				}
-			}
+		db, err := connect(dbname, v)
+		if err != nil {
+			continue
 		}
+
+		DB.mu.Lock()
+		DB.db[dbname] = db
+		if firstDB == nil {
+			firstDB = db
+		}
+		DB.mu.Unlock()
+	}
+
+	if firstDB != nil {
+		DB.Default = firstDB
 	}
 }
 
@@ -87,14 +92,25 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
 		SkipInitializeWithVersion: cfg.SkipVersion,
 	})
 
+	// 设置默认值
+	compress := false
+	if cfg.Logger.Compress != nil {
+		compress = *cfg.Logger.Compress
+	}
+	
+	localTime := false
+	if cfg.Logger.LocalTime != nil {
+		localTime = *cfg.Logger.LocalTime
+	}
+
 	logger := l.NewLogger(
 		l.WithFileName(fmt.Sprintf("storage/logs/%s.log", dbname)),
 		l.WithLevel(cfg.Logger.Level),
-		l.WithTimeZone(*cfg.Logger.LocalTime),
+		l.WithTimeZone(localTime),
 		l.WithMaxSize(cfg.Logger.MaxSize),
 		l.WithMaxBackup(cfg.Logger.MaxBackup),
 		l.WithMaxAge(cfg.Logger.MaxAge),
-		l.WithCompress(*cfg.Logger.Compress),
+		l.WithCompress(compress),
 	)
 	_logger := l.NewGormLogger(logger, l.WithSlowThreshold(time.Duration(cfg.Logger.SlowThreshold)*time.Millisecond))
 	db, err = gorm.Open(dbConfig, &gorm.Config{
@@ -128,8 +144,11 @@ func connect(dbname string, cfg Mysql) (db *gorm.DB, err error) {
  * @description: get mysql connection by dbname
  */
 func (d *Database) Use(dbname string) *gorm.DB {
-	if db, ok := d.db.Load(dbname); ok {
-		return db.(*gorm.DB)
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	if db, ok := d.db[dbname]; ok {
+		return db
 	}
 	return nil
 }
