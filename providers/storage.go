@@ -1,36 +1,27 @@
 package providers
 
 import (
-	"fmt"
-	"github.com/gin-generator/sugar/config"
 	"github.com/gin-generator/sugar/foundation"
 	"github.com/gin-generator/sugar/services/storage"
 )
 
 // StorageServiceProvider file storage service provider
-type StorageServiceProvider struct {
-	cfg *config.Config
-}
+type StorageServiceProvider struct{}
 
 // NewStorageServiceProvider creates a file storage service provider
-func NewStorageServiceProvider(cfg *config.Config) *StorageServiceProvider {
-	return &StorageServiceProvider{cfg: cfg}
+func NewStorageServiceProvider() *StorageServiceProvider {
+	return &StorageServiceProvider{}
 }
 
 // Register registers the service
 func (p *StorageServiceProvider) Register(app *foundation.Application) {
 	manager := storage.NewManager()
-	app.Bind("storage", manager)
+	app.Bind(ServiceStorage, manager)
 }
 
 // Boot boots the service
 func (p *StorageServiceProvider) Boot(app *foundation.Application) error {
-	service, ok := app.Make("storage")
-	if !ok {
-		return fmt.Errorf("storage service not found")
-	}
-
-	manager := service.(*storage.Manager)
+	manager := foundation.MustMake[*storage.Manager](app, ServiceStorage)
 
 	// 添加本地存储
 	localDisk := storage.NewLocalDisk(storage.LocalConfig{

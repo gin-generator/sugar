@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// PgsqlConfig PostgreSQL configuration with validation tags
+// PgsqlConfig PostgresSQL configuration with validation tags
 type PgsqlConfig struct {
 	Host                 string        `validate:"required,ip"`
 	Port                 int           `validate:"required,gt=0,lte=65535"`
@@ -23,7 +23,7 @@ type PgsqlConfig struct {
 	Logger               *LoggerConfig `validate:"omitempty"`
 }
 
-// NewPgsqlConnection creates a PostgreSQL connection
+// NewPgsqlConnection creates a PostgresSQL connection
 func NewPgsqlConnection(name string, cfg PgsqlConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=%s",
 		cfg.Host,

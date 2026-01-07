@@ -33,18 +33,13 @@ func newHttp(env string) *Http {
 	}
 }
 
-// Run 实现 Server 接口
-/**
- * @description: 运行 HTTP 服务器
- * @param {*foundation.Application} app
- */
+// Run starts the HTTP server
 func (h *Http) Run(app *foundation.Application) {
-	cfg, _ := app.GetConfig("app")
-	appCfg := cfg.(map[string]interface{})
+	cfg := app.Config
 
-	name := appCfg["name"].(string)
-	host := appCfg["host"].(string)
-	port := appCfg["port"].(int)
+	name := cfg.App.Name
+	host := cfg.App.Host
+	port := cfg.App.Port
 
 	fmt.Printf("%s serve start: %s:%d...\n", name, host, port)
 	err := h.Engine.Run(fmt.Sprintf("%s:%d", host, port))
@@ -53,9 +48,9 @@ func (h *Http) Run(app *foundation.Application) {
 	}
 }
 
-// Use 添加中间件
+// Use add middleware
 /**
- * @description: 使用中间件
+ * @description: add middleware to the http server
  * @param {...gin.HandlerFunc} middleware
  */
 func (h *Http) Use(middleware ...gin.HandlerFunc) {

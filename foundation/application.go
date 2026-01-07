@@ -3,22 +3,23 @@ package foundation
 import (
 	"context"
 	"fmt"
+	"github.com/gin-generator/sugar/config"
 	"sync"
 )
 
-// Application application container, similar to Laravel's service container
+// Application application container
 type Application struct {
 	context.Context
 	mu sync.RWMutex
 
 	// Service container
-	services map[string]interface{}
+	services map[string]any
 
 	// Service providers
 	providers []ServiceProvider
 
-	// Configuration
-	config map[string]interface{}
+	// Configuration (direct access)
+	Config *config.Config
 
 	// Whether the application has been booted
 	booted bool
@@ -28,9 +29,8 @@ type Application struct {
 func NewApplication() *Application {
 	return &Application{
 		Context:   context.Background(),
-		services:  make(map[string]interface{}),
+		services:  make(map[string]any),
 		providers: make([]ServiceProvider, 0),
-		config:    make(map[string]interface{}),
 		booted:    false,
 	}
 }
@@ -58,40 +58,37 @@ func (app *Application) Boot() error {
 }
 
 // Bind binds a service to the container
-func (app *Application) Bind(name string, service interface{}) {
+func (app *Application) Bind(name string, service any) {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 	app.services[name] = service
 }
 
-// Make retrieves a service from the container
-func (app *Application) Make(name string) (interface{}, bool) {
+// Make retrieves a service from the container with generic type
+func Make[T any](app *Application, name string) (T, error) {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
+
+	var zero T
 	service, ok := app.services[name]
-	return service, ok
+	if !ok {
+		return zero, fmt.Errorf("service %s not found in container", name)
+	}
+
+	typed, ok := service.(T)
+	if !ok {
+		return zero, fmt.Errorf("service %s type mismatch: expected %T, got %T", name, zero, service)
+	}
+
+	return typed, nil
 }
 
-// MustMake retrieves a service from the container, panics if not found
-func (app *Application) MustMake(name string) interface{} {
-	service, ok := app.Make(name)
-	if !ok {
-		panic(fmt.Sprintf("service %s not found in container", name))
+// MustMake retrieves a service from the container with generic type, panics if not found
+// Only use during application bootstrap phase
+func MustMake[T any](app *Application, name string) T {
+	service, err := Make[T](app, name)
+	if err != nil {
+		panic(err)
 	}
 	return service
-}
-
-// SetConfig sets a configuration value
-func (app *Application) SetConfig(key string, value interface{}) {
-	app.mu.Lock()
-	defer app.mu.Unlock()
-	app.config[key] = value
-}
-
-// GetConfig retrieves a configuration value
-func (app *Application) GetConfig(key string) (interface{}, bool) {
-	app.mu.RLock()
-	defer app.mu.RUnlock()
-	value, ok := app.config[key]
-	return value, ok
 }

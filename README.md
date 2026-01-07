@@ -1,29 +1,29 @@
-# Sugar - Go Web 框架
+# Sugar - Go Web Framework
 
-基于 Gin 的 Go Web 框架，参考 Laravel 设计模式，提供统一的服务管理和灵活的扩展能力。
+A Go web framework based on Gin, inspired by Laravel design patterns, providing unified service management and flexible extensibility.
 
-## 特性
+## Features
 
-- 🎯 **服务容器**：统一管理所有服务的生命周期
-- 🔌 **服务提供者**：模块化的服务注册和启动机制
-- 🎭 **Facade 模式**：提供便捷的静态访问接口
-- 🗄️ **多数据库支持**：MySQL、PostgreSQL 等多数据库连接管理
-- 💾 **缓存服务**：统一的缓存接口，支持 Redis 等多种驱动
-- 📁 **文件存储**：支持本地存储、S3、OSS 等多种存储方式
-- 📮 **消息队列**：异步任务处理支持
-- 🚀 **多服务类型**：支持 HTTP、WebSocket、gRPC 等多种服务
+- 🎯 **Service Container**: Unified lifecycle management for all services
+- 🔌 **Service Providers**: Modular service registration and bootstrapping mechanism
+- 🎭 **Facade Pattern**: Convenient static access interface
+- 🗄️ **Multi-Database Support**: Connection management for MySQL, PostgreSQL, and more
+- 💾 **Cache Service**: Unified cache interface with support for Redis and other drivers
+- 📁 **File Storage**: Support for local storage, S3, OSS, and more
+- 📮 **Message Queue**: Async task processing support
+- 🚀 **Multiple Service Types**: Support for HTTP, WebSocket, gRPC, and more
 
-## 快速开始
+## Quick Start
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 go mod download
 ```
 
-### 配置
+### Configuration
 
-编辑 `app/demo/etc/env.yaml` 配置文件：
+Edit the `app/demo/etc/env.yaml` configuration file:
 
 ```yaml
 app:
@@ -53,46 +53,46 @@ database:
       loc: Local
 ```
 
-### 运行
+### Run
 
 ```bash
 go run app/demo/demo.go
 ```
 
-访问 `http://localhost:8888/ping` 测试服务是否正常运行。
+Visit `http://localhost:8888/ping` to test if the service is running properly.
 
-## 项目结构
+## Project Structure
 
 ```
 .
-├── app/                    # 应用层
-│   └── demo/              # 示例应用
+├── app/                    # Application layer
+│   └── demo/              # Demo application
 │       ├── api/           # HTTP API
-│       ├── middleware/    # 应用级中间件
-│       ├── route/         # 路由
-│       └── etc/           # 配置文件
-├── bootstrap/             # 启动引导
-├── config/                # 配置管理
-├── foundation/            # 核心基础（服务容器）
-├── providers/             # 服务提供者
-├── services/              # 基础服务层
-│   ├── database/         # 数据库服务
-│   ├── cache/            # 缓存服务
-│   ├── storage/          # 文件存储服务
-│   ├── queue/            # 消息队列服务
-│   └── logger/           # 日志服务
-├── middleware/            # 全局中间件
-└── model/                 # 数据模型
+│       ├── middleware/    # Application-level middleware
+│       ├── route/         # Routes
+│       └── etc/           # Configuration files
+├── bootstrap/             # Bootstrap
+├── config/                # Configuration management
+├── foundation/            # Core foundation (service container)
+├── providers/             # Service providers
+├── services/              # Base service layer
+│   ├── database/         # Database service
+│   ├── cache/            # Cache service
+│   ├── storage/          # File storage service
+│   ├── queue/            # Message queue service
+│   └── logger/           # Logger service
+├── middleware/            # Global middleware
+└── model/                 # Data models
 ```
 
-## 使用示例
+## Usage Examples
 
-### 数据库操作
+### Database Operations
 
 ```go
 import "github.com/gin-generator/sugar/services/database"
 
-// 使用默认连接
+// Use default connection
 db := database.DB()
 var users []User
 db.Find(&users)
@@ -102,24 +102,24 @@ conn, _ := database.Connection("admin")
 conn.Find(&users)
 ```
 
-### 缓存操作
+### Cache Operations
 
 ```go
 import "github.com/gin-generator/sugar/services/cache"
 
 ctx := context.Background()
 
-// 设置缓存
+// Set cache
 cache.Set(ctx, "key", "value", time.Hour)
 
-// 获取缓存
+// Get cache
 value, _ := cache.Get(ctx, "key")
 
-// 删除缓存
+// Delete cache
 cache.Delete(ctx, "key")
 ```
 
-### 创建 API
+### Create API
 
 ```go
 // app/demo/route/route.go
@@ -136,20 +136,20 @@ func RegisterApi(e *gin.Engine) {
 }
 ```
 
-## 文档
+## Documentation
 
-- [架构说明](ARCHITECTURE.md) - 详细的架构设计说明
-- [使用示例](USAGE_EXAMPLES.md) - 完整的使用示例
+- [Architecture](ARCHITECTURE.md) - Detailed architecture design documentation
+- [Usage Examples](USAGE_EXAMPLES.md) - Complete usage examples
 
-## 创建新应用
+## Create New Application
 
-### 1. 创建应用目录
+### 1. Create Application Directory
 
 ```bash
 mkdir -p app/myapp/{api,middleware,route,etc}
 ```
 
-### 2. 创建主文件
+### 2. Create Main File
 
 ```go
 // app/myapp/myapp.go
@@ -175,19 +175,19 @@ func main() {
 }
 ```
 
-### 3. 创建配置文件
+### 3. Create Configuration File
 
-复制 `app/demo/etc/env.yaml` 到 `app/myapp/etc/env.yaml` 并修改配置。
+Copy `app/demo/etc/env.yaml` to `app/myapp/etc/env.yaml` and modify the configuration.
 
-### 4. 运行应用
+### 4. Run Application
 
 ```bash
 go run app/myapp/myapp.go
 ```
 
-## 添加自定义服务
+## Add Custom Service
 
-### 1. 创建服务
+### 1. Create Service
 
 ```go
 // services/email/manager.go
@@ -200,12 +200,12 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Send(to, subject, body string) error {
-    // 发送邮件逻辑
+    // Email sending logic
     return nil
 }
 ```
 
-### 2. 创建服务提供者
+### 2. Create Service Provider
 
 ```go
 // providers/email.go
@@ -229,14 +229,14 @@ func (p *EmailServiceProvider) Name() string {
 }
 ```
 
-### 3. 注册服务提供者
+### 3. Register Service Provider
 
-在 `bootstrap/bootstrap.go` 的 `registerProviders` 方法中添加：
+Add to the `registerProviders` method in `bootstrap/bootstrap.go`:
 
 ```go
 b.app.Register(providers.NewEmailServiceProvider(b.cfg))
 ```
 
-## 许可证
+## License
 
 MIT License

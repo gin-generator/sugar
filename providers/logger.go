@@ -1,19 +1,16 @@
 package providers
 
 import (
-	"github.com/gin-generator/sugar/config"
 	"github.com/gin-generator/sugar/foundation"
 	"github.com/gin-generator/sugar/services/logger"
 )
 
 // LoggerServiceProvider logger service provider
-type LoggerServiceProvider struct {
-	cfg *config.Config
-}
+type LoggerServiceProvider struct{}
 
 // NewLoggerServiceProvider creates a logger service provider
-func NewLoggerServiceProvider(cfg *config.Config) *LoggerServiceProvider {
-	return &LoggerServiceProvider{cfg: cfg}
+func NewLoggerServiceProvider() *LoggerServiceProvider {
+	return &LoggerServiceProvider{}
 }
 
 // Register registers the service
@@ -23,14 +20,11 @@ func (p *LoggerServiceProvider) Register(app *foundation.Application) {
 
 // Boot boots the service
 func (p *LoggerServiceProvider) Boot(app *foundation.Application) error {
-	var loggerCfg logger.Config
-	if err := p.cfg.UnmarshalKey("logger", &loggerCfg); err != nil {
-		return err
-	}
+	cfg := app.Config
 
-	log := logger.NewLoggerFromConfig(loggerCfg)
+	log := logger.NewLoggerFromConfig(cfg.Logger)
 	logger.SetLogger(log)
-	app.Bind("logger", log)
+	app.Bind(ServiceLogger, log)
 
 	return nil
 }

@@ -7,29 +7,28 @@ import (
 	"net"
 )
 
-// RegisterGrpcService gRPC 服务注册函数类型
+// RegisterGrpcService gRPC service registration function type
 type RegisterGrpcService func(*grpc.Server)
 
-// Grpc gRPC 服务器结构
+// Grpc server struct
 type Grpc struct {
 	Server *grpc.Server
 }
 
-// newGrpc 创建新的 gRPC 服务器实例
+// newGrpc creates a new Grpc server instance
 func newGrpc() *Grpc {
 	return &Grpc{
 		Server: grpc.NewServer(),
 	}
 }
 
-// Run 实现 Server 接口
+// Run starts the gRPC server
 func (g *Grpc) Run(app *foundation.Application) {
-	cfg, _ := app.GetConfig("app")
-	appCfg := cfg.(map[string]interface{})
+	cfg := app.Config
 
-	name := appCfg["name"].(string)
-	host := appCfg["host"].(string)
-	port := appCfg["port"].(int)
+	name := cfg.App.Name
+	host := cfg.App.Host
+	port := cfg.App.Port
 
 	address := fmt.Sprintf("%s:%d", host, port)
 	listener, err := net.Listen("tcp", address)
@@ -38,7 +37,7 @@ func (g *Grpc) Run(app *foundation.Application) {
 	}
 
 	fmt.Printf("%s gRPC server start: %s...\n", name, address)
-	if err := g.Server.Serve(listener); err != nil {
+	if err = g.Server.Serve(listener); err != nil {
 		panic("Failed to serve: " + err.Error())
 	}
 }

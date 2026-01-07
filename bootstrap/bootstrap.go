@@ -15,7 +15,7 @@ const (
 	ServerGrpc
 )
 
-// Server 服务器接口
+// Server server interface
 type Server interface {
 	Run(app *foundation.Application)
 }
@@ -35,9 +35,6 @@ type Bootstrap struct {
 	// Application container
 	app *foundation.Application
 
-	// Config manager
-	cfg *config.Config
-
 	// Server instance
 	server Server
 }
@@ -47,32 +44,24 @@ func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
 	// Create application container
 	app := foundation.NewApplication()
 
-	// Load configuration
-	cfg := config.NewConfig("env.yaml", "./etc")
+	// Load and store configuration in application
+	app.Config = config.NewConfig("env.yaml", "./etc")
 
 	b := &Bootstrap{
-		app: app,
-		cfg: cfg,
+		app:    app,
+		server: nil,
 	}
-
-	// Store configuration in application container
-	var appCfg map[string]interface{}
-	err := cfg.UnmarshalKey("app", &appCfg)
-	if err != nil {
-		return nil
-	}
-	app.SetConfig("app", appCfg)
 
 	// Register service providers
 	b.registerProviders()
 
 	// Boot service providers
-	if err = app.Boot(); err != nil {
+	if err := app.Boot(); err != nil {
 		panic(err)
 	}
 
 	// Create server instance
-	b.server = createServer(serverType, app, cfg)
+        b.server = createServer(serverType, app)
 
 	// Apply options
 	for _, opt := range opts {
@@ -85,22 +74,21 @@ func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
 // registerProviders registers service providers
 func (b *Bootstrap) registerProviders() {
 	// Register core service providers
-	b.app.Register(providers.NewLoggerServiceProvider(b.cfg))
-	b.app.Register(providers.NewDatabaseServiceProvider(b.cfg))
-	b.app.Register(providers.NewCacheServiceProvider(b.cfg))
-	b.app.Register(providers.NewStorageServiceProvider(b.cfg))
-	b.app.Register(providers.NewQueueServiceProvider(b.cfg))
+	b.app.Register(providers.NewLoggerServiceProvider())
+	b.app.Register(providers.NewDatabaseServiceProvider())
+	b.app.Register(providers.NewCacheServiceProvider())
+	b.app.Register(providers.NewStorageServiceProvider())
+	b.app.Register(providers.NewQueueServiceProvider())
 }
 
 // createServer creates a server instance based on the server type
-func createServer(serverType ServerType, app *foundation.Application, cfg *config.Config) Server {
-	env := cfg.GetString("app.env")
+func createServer(serverType ServerType, app *foundation.Application) Server {
+	env := string(app.Config.App.Env)
 
 	switch serverType {
 	case ServerHttp:
 		return newHttp(env)
 	case ServerWebsocket:
-		// 可以在这里实现 WebSocket 服务器
 		panic("websocket server not implemented yet")
 	case ServerGrpc:
 		return newGrpc()
@@ -109,10 +97,10 @@ func createServer(serverType ServerType, app *foundation.Application, cfg *confi
 	}
 }
 
-// WithConfig sets the config manager
+// WithConfig sets the config (deprecated, config is auto-loaded)
 func WithConfig(cfg *config.Config) Option {
 	return optionFunc(func(b *Bootstrap) {
-		b.cfg = cfg
+		b.app.Config = cfg
 	})
 }
 
@@ -123,7 +111,7 @@ func WithProvider(provider foundation.ServiceProvider) Option {
 	})
 }
 
-// WithGinEngine 设置 gin 引擎（仅适用于 HTTP 服务器）
+// WithGinEngine sets the Gin engine (only for HTTP server)
 func WithGinEngine(engine *gin.Engine) Option {
 	return optionFunc(func(b *Bootstrap) {
 		if httpServer, ok := b.server.(*Http); ok {
@@ -132,7 +120,7 @@ func WithGinEngine(engine *gin.Engine) Option {
 	})
 }
 
-// WithHttpMiddleware 设置 HTTP 中间件（仅适用于 HTTP 服务器）
+// WithHttpMiddleware sets HTTP middleware (only for HTTP server)
 func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
 	return optionFunc(func(b *Bootstrap) {
 		if httpServer, ok := b.server.(*Http); ok {
@@ -141,7 +129,7 @@ func WithHttpMiddleware(middleware ...gin.HandlerFunc) Option {
 	})
 }
 
-// WithHttpRouter 设置 HTTP 路由（仅适用于 HTTP 服务器）
+// WithHttpRouter sets HTTP routes (only for HTTP server)
 func WithHttpRouter(registerRouter RegisterRouter) Option {
 	return optionFunc(func(b *Bootstrap) {
 		if httpServer, ok := b.server.(*Http); ok {
@@ -150,7 +138,7 @@ func WithHttpRouter(registerRouter RegisterRouter) Option {
 	})
 }
 
-// WithGrpcService 注册 gRPC 服务（仅适用于 gRPC 服务器）
+// WithGrpcService sets gRPC services (only for gRPC server)
 func WithGrpcService(registerService RegisterGrpcService) Option {
 	return optionFunc(func(b *Bootstrap) {
 		if grpcServer, ok := b.server.(*Grpc); ok {

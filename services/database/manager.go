@@ -6,10 +6,10 @@ import (
 	"sync"
 )
 
-// Manager database manager for MySQL, PostgreSQL, etc.
+// Manager database manager for MySQL, PostgresSQL, etc.
 type Manager struct {
-	connections      map[string]*gorm.DB
-	mu               sync.RWMutex
+	connections       map[string]*gorm.DB
+	mu                sync.RWMutex
 	defaultConnection string
 }
 
