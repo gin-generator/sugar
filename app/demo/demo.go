@@ -8,7 +8,6 @@ import (
 
 func main() {
 	b := bootstrap.NewBootstrap(
-		bootstrap.ServerHttp, // create a new http bootstrap instance
 		bootstrap.WithHttpMiddleware(
 			middleware.Recovery(),
 			middleware.Logger(),

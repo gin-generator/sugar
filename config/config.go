@@ -21,10 +21,11 @@ const (
 
 // App application configuration
 type App struct {
-	Name string `validate:"required"`
-	Host string `validate:"required"`
-	Port int    `validate:"required,gt=0,lte=65535"`
-	Env  Mode   `validate:"required,oneof=debug release test"`
+	Name   string `validate:"required"`
+	Server string `validate:"required,oneof=http grpc websocket"`
+	Host   string `validate:"required"`
+	Port   int    `validate:"required,gt=0,lte=65535"`
+	Env    Mode   `validate:"required,oneof=debug release test"`
 }
 
 // Database database configuration for validation
@@ -37,7 +38,7 @@ type Database struct {
 type Config struct {
 	App      App           `validate:"required"`
 	Logger   logger.Config `validate:"required"`
-	Database Database      `validate:"required"`
+	Database Database      `validate:"omitempty"`
 }
 
 // NewConfig creates and validates configuration from file

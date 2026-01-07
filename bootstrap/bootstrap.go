@@ -7,12 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ServerType int
+type ServerType string
 
 const (
-	ServerHttp ServerType = iota
-	ServerWebsocket
-	ServerGrpc
+	ServerHttp      ServerType = "http"
+	ServerWebsocket ServerType = "websocket"
+	ServerGrpc      ServerType = "grpc"
 )
 
 // Server server interface
@@ -40,7 +40,7 @@ type Bootstrap struct {
 }
 
 // NewBootstrap creates a new bootstrap instance
-func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
+func NewBootstrap(opts ...Option) *Bootstrap {
 	// Create application container
 	app := foundation.NewApplication()
 
@@ -61,7 +61,7 @@ func NewBootstrap(serverType ServerType, opts ...Option) *Bootstrap {
 	}
 
 	// Create server instance
-        b.server = createServer(serverType, app)
+	b.server = createServer(app.Config)
 
 	// Apply options
 	for _, opt := range opts {
@@ -82,8 +82,9 @@ func (b *Bootstrap) registerProviders() {
 }
 
 // createServer creates a server instance based on the server type
-func createServer(serverType ServerType, app *foundation.Application) Server {
-	env := string(app.Config.App.Env)
+func createServer(cfg *config.Config) Server {
+	env := string(cfg.App.Env)
+	serverType := ServerType(cfg.App.Server)
 
 	switch serverType {
 	case ServerHttp:
@@ -97,7 +98,7 @@ func createServer(serverType ServerType, app *foundation.Application) Server {
 	}
 }
 
-// WithConfig sets the config (deprecated, config is auto-loaded)
+// WithConfig sets the config (deprecated, config is autoloaded)
 func WithConfig(cfg *config.Config) Option {
 	return optionFunc(func(b *Bootstrap) {
 		b.app.Config = cfg
